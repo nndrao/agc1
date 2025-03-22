@@ -500,12 +500,14 @@ function GeneralSettingsDialog({
   isOpen, 
   onClose, 
   gridApi,
-  currentProfileId
+  currentProfileId,
+  showToastMessage
 }: { 
   isOpen: boolean; 
   onClose: () => void;
   gridApi: GridApi | null;
   currentProfileId: string;
+  showToastMessage?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -753,15 +755,26 @@ function GeneralSettingsDialog({
                   // Save back to localStorage
                   localStorage.setItem('agGridSettings', JSON.stringify(parsedSettings));
                   console.log('Successfully saved grid options and column state to profile:', currentProfileId);
+                  
+                  // Display success toast if function is provided
+                  if (showToastMessage) {
+                    showToastMessage(`Grid settings saved to "${parsedSettings[profileIndex].name}" profile`);
+                  }
                 } else {
                   console.warn('Could not find profile to update:', currentProfileId);
                 }
               }
             } catch (error) {
               console.error('Error saving grid options to localStorage:', error);
+              if (showToastMessage) {
+                showToastMessage('Failed to save grid settings', 'error');
+              }
             }
           } catch (err) {
             console.warn('Error refreshing grid:', err);
+            if (showToastMessage) {
+              showToastMessage('Error refreshing grid', 'error');
+            }
           }
         }
       }, 50);
@@ -769,6 +782,9 @@ function GeneralSettingsDialog({
       console.log('AG-Grid settings application initiated - refresh will complete shortly');
     } catch (error) {
       console.error('Error applying AG-Grid settings:', error);
+      if (showToastMessage) {
+        showToastMessage('Error applying grid settings', 'error');
+      }
     }
   };
   
@@ -1347,8 +1363,11 @@ function GeneralSettingsDialog({
 }
 
 // Update the SettingsToolPanel to include the General Settings button
-function SettingsToolPanel(props: IToolPanelParams & { currentProfileId?: string }) {
-  const { api, currentProfileId } = props;
+function SettingsToolPanel(props: IToolPanelParams & { 
+  currentProfileId?: string;
+  showToastMessage?: (message: string, type?: 'success' | 'error' | 'info') => void;
+}) {
+  const { api, currentProfileId, showToastMessage } = props;
   const [showToolbar, setShowToolbar] = useState(true);
   const [showGeneralSettings, setShowGeneralSettings] = useState(false);
   
@@ -1456,6 +1475,7 @@ function SettingsToolPanel(props: IToolPanelParams & { currentProfileId?: string
           onClose={() => setShowGeneralSettings(false)}
           gridApi={api}
           currentProfileId={currentProfileId || "default"}
+          showToastMessage={showToastMessage}
         />
       )}
     </div>
@@ -1473,11 +1493,21 @@ class GridErrorBoundary extends React.Component<
   }
 
   static getDerivedStateFromError(_: Error) {
+    // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Grid Error:", error, errorInfo);
+    // Log the error to console
+    console.error("Grid Error:", error);
+    console.error("Component Stack:", errorInfo.componentStack);
+  }
+
+  // Reset error state when component receives new children props
+  componentDidUpdate(prevProps: { children: React.ReactNode }) {
+    if (this.state.hasError && prevProps.children !== this.props.children) {
+      this.setState({ hasError: false });
+    }
   }
 
   render() {
@@ -1618,6 +1648,83 @@ function applyGridFontSize(value: number) {
   applyCssVariable("--ag-font-size", `${value}px`);
 }
 
+// Simple Toast component for notifications
+function Toast({ 
+  message, 
+  type, 
+  onClose 
+}: { 
+  message: string; 
+  type: 'success' | 'error' | 'info'; 
+  onClose: () => void 
+}) {
+  const [visible, setVisible] = useState(true);
+  
+  // Auto-dismiss after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setVisible(false);
+      setTimeout(onClose, 300); // Allow for fade-out animation
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [onClose]);
+  
+  // Determine styles based on type
+  const backgroundColor = type === 'success' 
+    ? '#10B981' 
+    : type === 'error' 
+      ? '#EF4444' 
+      : '#3B82F6';
+  
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        backgroundColor,
+        color: 'white',
+        padding: '10px 16px',
+        borderRadius: '6px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        zIndex: 1000,
+        opacity: visible ? 1 : 0,
+        transform: `translateY(${visible ? '0' : '10px'})`,
+        transition: 'opacity 0.3s, transform 0.3s',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        maxWidth: '300px'
+      }}
+    >
+      <div>
+        {type === 'success' && '✓'}
+        {type === 'error' && '✗'}
+        {type === 'info' && 'ℹ'}
+      </div>
+      <div style={{ flex: 1 }}>{message}</div>
+      <button
+        onClick={() => {
+          setVisible(false);
+          setTimeout(onClose, 300);
+        }}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'white',
+          cursor: 'pointer',
+          fontSize: '16px',
+          opacity: 0.7,
+          padding: '0 4px'
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 export function DataTable() {
   const { theme: appTheme } = useTheme();
   const [isDarkMode, setIsDarkMode] = useState(appTheme === 'dark');
@@ -1632,7 +1739,21 @@ export function DataTable() {
   const [currentProfile, setCurrentProfile] = useState<string>("default");
   const [showSavedSettingsDropdown, setShowSavedSettingsDropdown] = useState(false);
   const [gridReady, setGridReady] = useState(false);
+  // Add toast state
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+  
+  // Add a ref to track theme synchronization and prevent loops
+  const syncingTheme = useRef(false);
+  
   const gridRef = useRef<AgGridReact>(null);
+  
+  // Add a showToast helper function
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type });
+  }, []);
   
   const containerStyle = useMemo(() => ({ 
     height: "calc(100vh - 7rem)",
@@ -1882,36 +2003,37 @@ export function DataTable() {
 
   // Modified onGridReady handler
   const onGridReady = useCallback((params: GridReadyEvent) => {
-    setGridReady(true);
-    
-    // Apply existing settings to the newly ready grid
-    applyGridSpacing(spacing, params.api);
-    
-    fetch("https://www.ag-grid.com/example-assets/olympic-winners.json")
-      .then((resp) => resp.json())
-      .then((data: any[]) => {
-        const transformedData = data.map(row => ({
-          ...row,
-          medalist: (row.gold + row.silver + row.bronze) > 0
-        }));
-        setRowData(transformedData);
-      })
-      .catch(error => {
-        console.error("Error fetching data:", error);
-        setRowData([]);
-      });
+    try {
+      console.log('Grid ready');
+      setGridReady(true);
+      
+      // Apply existing settings to the newly ready grid
+      applyGridSpacing(spacing, params.api);
+      
+      // Fetch data with error handling
+      fetch("https://www.ag-grid.com/example-assets/olympic-winners.json")
+        .then((resp) => resp.json())
+        .then((data: any[]) => {
+          try {
+            const transformedData = data.map(row => ({
+              ...row,
+              medalist: (row.gold + row.silver + row.bronze) > 0
+            }));
+            setRowData(transformedData);
+          } catch (err) {
+            console.error("Error transforming grid data:", err);
+            setRowData([]); // Set empty array in case of error
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching data:", error);
+          setRowData([]);
+        });
+    } catch (error) {
+      console.error("Error in grid initialization:", error);
+      setRowData([]); // Ensure we at least have valid data
+    }
   }, [spacing]);
-
-  const setDarkMode = useCallback((enabled: boolean) => {
-    setIsDarkMode(enabled);
-    document.body.dataset.agThemeMode = enabled ? "dark" : "light";
-    document.body.classList.toggle('dark', enabled);
-    
-    // When dark mode changes, we need to reapply styles for proper contrast
-    setTimeout(() => {
-      applyGridAccentColor(accentColor);
-    }, 0);
-  }, [accentColor]);
 
   const changeSpacing = useCallback((value: number) => {
     setSpacing(value);
@@ -1940,10 +2062,53 @@ export function DataTable() {
     }, 50);
   }, [accentColor]);
 
+  // IMPORTANT: Define setDarkMode before it's used in any useEffect hooks
+  // Improved setDarkMode function to prevent recursive updates
+  const setDarkMode = useCallback((enabled: boolean) => {
+    // Skip if we're already syncing to prevent loops
+    if (syncingTheme.current) {
+      console.log('Skipping setDarkMode during sync:', enabled);
+      return;
+    }
+    
+    console.log('Setting dark mode to:', enabled);
+    syncingTheme.current = true;
+    
+    // Update state
+    setIsDarkMode(enabled);
+    
+    // Update DOM properties
+    document.body.dataset.agThemeMode = enabled ? "dark" : "light";
+    
+    if (enabled) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+    
+    // When dark mode changes, we need to reapply styles for proper contrast
+    setTimeout(() => {
+      try {
+        applyGridAccentColor(accentColor);
+      } finally {
+        // Reset the syncing flag after a short delay
+        setTimeout(() => {
+          syncingTheme.current = false;
+        }, 100);
+      }
+    }, 50);
+  }, [accentColor]);
+
   // Keep theme in sync with app theme
   useEffect(() => {
-    setDarkMode(appTheme === 'dark');
-  }, [appTheme, setDarkMode]);
+    console.log('App theme changed to:', appTheme, 'Current isDarkMode:', isDarkMode);
+    
+    // Only update if not already syncing and there's a difference
+    if (!syncingTheme.current && (appTheme === 'dark') !== isDarkMode) {
+      console.log('→ Updating dark mode to match app theme:', appTheme === 'dark');
+      setDarkMode(appTheme === 'dark');
+    }
+  }, [appTheme, setDarkMode, isDarkMode]);
 
   // Initialize visual settings on component mount - once only
   useEffect(() => {
@@ -1951,6 +2116,14 @@ export function DataTable() {
     applyGridSpacing(spacing, null);
     applyGridFontSize(fontSize);
     applyGridAccentColor(accentColor);
+    
+    // Initial theme setup - set immediately and only once at component mount
+    if (appTheme === 'dark' && !isDarkMode) {
+      console.log('Setting initial dark mode state from app theme');
+      document.body.dataset.agThemeMode = "dark";
+      document.body.classList.add('dark');
+      setIsDarkMode(true);
+    }
     
     // Add click outside listener for color picker
     const handleClickOutside = (event: MouseEvent) => {
@@ -1977,7 +2150,7 @@ export function DataTable() {
       
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []); // Empty dependency array means this only runs once
+  }, [appTheme, isDarkMode, spacing, fontSize, accentColor]);
 
   // Function to create a default profile
   const createDefaultProfile = useCallback((): GridSettings => {
@@ -2150,15 +2323,21 @@ export function DataTable() {
       updatedSettings[existingIndex] = currentSettings;
       setSavedSettings(updatedSettings);
       localStorage.setItem('agGridSettings', JSON.stringify(updatedSettings));
+      
+      // Show success toast
+      showToast(`Settings saved to "${currentSettings.name}" profile`);
       console.log(`Settings saved to "${currentSettings.name}" profile`);
     } else {
       // This shouldn't happen normally since we're only updating current profile
       const updatedSettings = [...savedSettings, currentSettings];
       setSavedSettings(updatedSettings);
       localStorage.setItem('agGridSettings', JSON.stringify(updatedSettings));
+      
+      // Show success toast
+      showToast(`Settings saved as "${currentSettings.name}"`);
       console.log(`Settings saved as "${currentSettings.name}"`);
     }
-  }, [collectCurrentSettings, savedSettings, currentProfile]);
+  }, [collectCurrentSettings, savedSettings, currentProfile, showToast]);
 
   // Function to save settings as a new profile
   const saveSettingsAs = useCallback(() => {
@@ -2204,20 +2383,42 @@ export function DataTable() {
     setCurrentProfile(newProfile.id); // Set this as the current profile
     localStorage.setItem('agGridSettings', JSON.stringify(updatedSettings));
 
+    // Show success toast
+    showToast(`Settings saved as "${name}" profile and set as current`);
     console.log(`Settings saved as "${name}" profile and set as current`);
-  }, [collectCurrentSettings, savedSettings]);
+  }, [collectCurrentSettings, savedSettings, showToast]);
 
   // Function to load settings from a profile
   const loadSettings = useCallback((settings: GridSettings) => {
+    console.log('Loading settings with isDarkMode:', settings.isDarkMode);
+    
     // Apply theme
     const newTheme = themeOptions.find(t => t.id === settings.theme) || themeOptions[0];
     setSelectedTheme(newTheme);
 
-    // Apply visual settings that don't require the grid
-    setDarkMode(settings.isDarkMode);
-    setSpacing(settings.spacing);
-    changeFontSize(settings.fontSize);
-    changeAccentColor(settings.accentColor);
+    // Apply visual settings in sequence with a small delay
+    // This helps prevent theme flickering
+    const applyVisualSettings = () => {
+      // Apply dark mode first, as it affects other style applications
+      if (settings.isDarkMode !== isDarkMode) {
+        setDarkMode(settings.isDarkMode);
+        
+        // Allow dark mode to apply before other styles
+        setTimeout(() => {
+          setSpacing(settings.spacing);
+          changeFontSize(settings.fontSize);
+          changeAccentColor(settings.accentColor);
+        }, 50);
+      } else {
+        // If dark mode isn't changing, apply other styles immediately
+        setSpacing(settings.spacing);
+        changeFontSize(settings.fontSize);
+        changeAccentColor(settings.accentColor);
+      }
+    };
+    
+    // Delay applying settings to ensure DOM is ready
+    setTimeout(applyVisualSettings, 10);
 
     // Set as current profile immediately
     setCurrentProfile(settings.id);
@@ -2622,9 +2823,11 @@ export function DataTable() {
       </div>
       <div style={gridStyle}>
         <GridErrorBoundary>
+          {/* Force re-render when theme changes with key */}
           <AgGridReact
+            key={`grid-${selectedTheme.id}-${isDarkMode ? 'dark' : 'light'}`}
             ref={gridRef}
-            theme={selectedTheme.theme}
+            theme={selectedTheme.theme as any}
             columnDefs={columnDefs}
             rowData={rowData}
             defaultColDef={defaultColDef}
@@ -2640,17 +2843,30 @@ export function DataTable() {
             }}
             onGridReady={onGridReady}
             components={{
-              settingsToolPanel: (props: IToolPanelParams) => <SettingsToolPanel {...props} currentProfileId={currentProfile} />
+              settingsToolPanel: (props: IToolPanelParams) => (
+                <SettingsToolPanel 
+                  {...props} 
+                  currentProfileId={currentProfile} 
+                  showToastMessage={showToast}
+                />
+              )
             }}
-            // Safer default options
             enableCellTextSelection={true} 
             rowSelection="multiple"
             suppressMenuHide={false}
-            // Disable range selection until fully initialized
             enableRangeSelection={gridReady}
           />
         </GridErrorBoundary>
       </div>
+      
+      {/* Render toast notification when it exists */}
+      {toast && (
+        <Toast 
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
