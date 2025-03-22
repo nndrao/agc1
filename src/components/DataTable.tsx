@@ -19,7 +19,7 @@ import { AgGridReact } from "ag-grid-react";
 import { useTheme } from '../context/ThemeContext';
 
 // Define GridTheme type since it's not exported
-type GridTheme = any;
+type GridTheme = Record<string, unknown>;
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([
@@ -491,6 +491,8 @@ interface GridSettings {
   gridOptions: any;
   name: string;
   isDefault?: boolean; // Flag to mark the default profile
+  columnState?: any; // Add column state for grouping
+  columnGroupState?: any; // Add column group state
 }
 
 // Create the General Settings Dialog component
@@ -517,34 +519,30 @@ function GeneralSettingsDialog({
     rowData: true,
     enableCellTextSelection: true,
     
-    // Row Selection
-    rowSelection: {
-      mode: 'multiRow', // Changed from 'type: multiple' to 'mode: multiRow'
-      enableSelectionWithoutKeys: true,
-      enableClickSelection: true,
-    },
-    suppressMenuHide: false, // Always show column menu
+    // Row Selection - Fix type issues
+    rowSelection: 'multiple', // Use string value instead of object
+    suppressMenuHide: false,
     
     // Styling
     headerHeight: 32,
     rowHeight: 25,
     
-    // Row Grouping & Pivoting
+    // Row Grouping & Pivoting - Fix type issues
     groupDefaultExpanded: 0,
-    rowGroupPanelShow: 'onlyWhenGrouping', // Show/hide row grouping UI
-    groupDisplayType: 'singleColumn',
-    groupTotalRow: false, // Replaces groupIncludeFooter
-    grandTotalRow: false, // Replaces groupIncludeTotalFooter
+    rowGroupPanelShow: 'onlyWhenGrouping' as 'onlyWhenGrouping' | 'always' | 'never',
+    groupDisplayType: 'singleColumn' as 'singleColumn' | 'multipleColumns' | 'groupRows' | 'custom',
+    groupIncludeFooter: false, // Use the old property names that are safer
+    groupIncludeTotalFooter: false, // Use the old property names that are safer
     pivotMode: false,
-    pivotColumnGroupTotals: 'before',
-    pivotRowTotals: 'before',
+    pivotColumnGroupTotals: 'before' as 'before' | 'after',
+    pivotRowTotals: 'before' as 'before' | 'after',
     
     // Sorting
     suppressMultiSort: false,
     
     // Filtering
     enableAdvancedFilter: false,
-    cacheQuickFilter: true, // Initial property, can't be updated
+    cacheQuickFilter: true,
     
     // Pagination
     pagination: false,
@@ -552,34 +550,34 @@ function GeneralSettingsDialog({
     suppressPaginationPanel: false,
     
     // Editing
-    editType: 'fullRow',
-    singleClickEdit: false, // Start editing on single click
-    stopEditingWhenCellsLoseFocus: true, // Initial property, can't be updated
-    enterNavigatesVertically: true, // Replaces enterMovesDown
-    enterNavigatesVerticallyAfterEdit: true, // Replaces enterMovesDownAfterEdit
-    readOnlyEdit: false, // Allow editing but keep original value
+    editType: 'fullRow' as 'fullRow',
+    singleClickEdit: false,
+    stopEditingWhenCellsLoseFocus: true,
+    enterMovesDown: true, // Use the old property names that are safer
+    enterMovesDownAfterEdit: true, // Use the old property names that are safer
+    readOnlyEdit: false,
     
     // Column Options
     suppressMovableColumns: false,
     suppressFieldDotNotation: false,
-    suppressAutoSize: false, // Initial property, can't be updated
-    suppressColumnVirtualisation: false, // Initial property, can't be updated
+    suppressAutoSize: false,
+    suppressColumnVirtualisation: false,
     suppressColumnMoveAnimation: false,
     
     // Export
-    suppressCsvExport: false, // Replaces enableCsvExport
-    suppressExcelExport: false, // Replaces enableExcelExport
+    suppressCsvExport: false,
+    suppressExcelExport: false,
     
-    // Cell Selection & Range Selection
-    cellSelection: true, // Replaces enableRangeSelection
-    cellSelectionHandle: true, // Replaces enableRangeHandle
-    cellSelectionFillHandle: true, // Replaces enableFillHandle
+    // Cell Selection & Range Selection - use the safer properties
+    enableRangeSelection: true, // Use the old property names that are safer
+    enableRangeHandle: true, // Use the old property names that are safer
+    enableFillHandle: true, // Use the old property names that are safer
     
     // Other Functionality
     suppressDragLeaveHidesColumns: false,
     animateRows: true,
-    undoRedoCellEditing: false, // Initial property, can't be updated
-    undoRedoCellEditingLimit: 10 // Initial property, can't be updated
+    undoRedoCellEditing: false,
+    undoRedoCellEditingLimit: 10
   });
   
   // Reference to savedSettings and a function to find the current profile
@@ -610,72 +608,165 @@ function GeneralSettingsDialog({
     }
   }, [isOpen, gridApi, currentProfileId]);
   
-  // Apply grid options to the grid
+  // Apply grid options to the grid - safer implementation
   const applyGridOptions = () => {
     if (!gridApi) return;
     
     try {
-      // Core Grid Options
-      gridApi.setGridOption('enableCellTextSelection', gridOptions.enableCellTextSelection);
+      console.log('Applying grid options to AG-Grid:', gridOptions);
       
-      // Row Selection
-      gridApi.setGridOption('rowSelection', gridOptions.rowSelection);
-      gridApi.setGridOption('suppressMenuHide', gridOptions.suppressMenuHide);
+      // Loop through all options and apply them more systematically
+      const optionsToApply = [
+        // Core Grid Options
+        { key: 'enableCellTextSelection', value: gridOptions.enableCellTextSelection },
+        { key: 'rowSelection', value: gridOptions.rowSelection },
+        { key: 'suppressMenuHide', value: gridOptions.suppressMenuHide },
+        
+        // Styling
+        { key: 'headerHeight', value: gridOptions.headerHeight },
+        { key: 'rowHeight', value: gridOptions.rowHeight },
+        
+        // Row Grouping & Pivoting - use the safer properties
+        { key: 'groupDefaultExpanded', value: gridOptions.groupDefaultExpanded },
+        { key: 'rowGroupPanelShow', value: gridOptions.rowGroupPanelShow },
+        { key: 'groupDisplayType', value: gridOptions.groupDisplayType },
+        
+        // Use the property names that work reliably
+        { key: 'groupIncludeFooter', value: gridOptions.groupIncludeFooter },
+        { key: 'groupIncludeTotalFooter', value: gridOptions.groupIncludeTotalFooter },
+        { key: 'pivotMode', value: gridOptions.pivotMode },
+        { key: 'pivotColumnGroupTotals', value: gridOptions.pivotColumnGroupTotals },
+        { key: 'pivotRowTotals', value: gridOptions.pivotRowTotals },
+        
+        // Sorting & Filtering
+        { key: 'suppressMultiSort', value: gridOptions.suppressMultiSort },
+        { key: 'enableAdvancedFilter', value: gridOptions.enableAdvancedFilter },
+        
+        // Pagination
+        { key: 'pagination', value: gridOptions.pagination },
+        { key: 'paginationPageSize', value: gridOptions.paginationPageSize },
+        { key: 'suppressPaginationPanel', value: gridOptions.suppressPaginationPanel },
+        
+        // Editing
+        { key: 'editType', value: gridOptions.editType },
+        { key: 'singleClickEdit', value: gridOptions.singleClickEdit },
+        { key: 'enterMovesDown', value: gridOptions.enterMovesDown },
+        { key: 'enterMovesDownAfterEdit', value: gridOptions.enterMovesDownAfterEdit },
+        { key: 'readOnlyEdit', value: gridOptions.readOnlyEdit },
+        
+        // Column Options
+        { key: 'suppressMovableColumns', value: gridOptions.suppressMovableColumns },
+        { key: 'suppressFieldDotNotation', value: gridOptions.suppressFieldDotNotation },
+        { key: 'suppressColumnMoveAnimation', value: gridOptions.suppressColumnMoveAnimation },
+        
+        // Export
+        { key: 'suppressCsvExport', value: gridOptions.suppressCsvExport },
+        { key: 'suppressExcelExport', value: gridOptions.suppressExcelExport },
+        
+        // Cell Selection & Range Selection
+        { key: 'enableRangeSelection', value: gridOptions.enableRangeSelection },
+        { key: 'enableRangeHandle', value: gridOptions.enableRangeHandle },
+        { key: 'enableFillHandle', value: gridOptions.enableFillHandle },
+        
+        // Other Functionality
+        { key: 'suppressDragLeaveHidesColumns', value: gridOptions.suppressDragLeaveHidesColumns },
+        { key: 'animateRows', value: gridOptions.animateRows }
+      ];
       
-      // Styling
-      gridApi.setGridOption('headerHeight', gridOptions.headerHeight);
-      gridApi.setGridOption('rowHeight', gridOptions.rowHeight);
+      // Apply options safely, with error handling for each one
+      for (const option of optionsToApply) {
+        try {
+          if (option.value !== undefined) {
+            gridApi.setGridOption(option.key as any, option.value);
+            console.log(`Successfully applied ${option.key}:`, option.value);
+          }
+        } catch (e) {
+          console.warn(`Could not set grid option ${option.key}:`, e);
+        }
+      }
       
-      // Row Grouping & Pivoting
-      gridApi.setGridOption('groupDefaultExpanded', gridOptions.groupDefaultExpanded);
-      gridApi.setGridOption('rowGroupPanelShow', gridOptions.rowGroupPanelShow);
-      gridApi.setGridOption('groupDisplayType', gridOptions.groupDisplayType);
-      gridApi.setGridOption('groupTotalRow', gridOptions.groupTotalRow);
-      gridApi.setGridOption('grandTotalRow', gridOptions.grandTotalRow);
-      gridApi.setGridOption('pivotMode', gridOptions.pivotMode);
-      gridApi.setGridOption('pivotColumnGroupTotals', gridOptions.pivotColumnGroupTotals);
-      gridApi.setGridOption('pivotRowTotals', gridOptions.pivotRowTotals);
+      // Get current column state before applying changes
+      let columnState = null;
+      let columnGroupState = null;
       
-      // Sorting
-      gridApi.setGridOption('suppressMultiSort', gridOptions.suppressMultiSort);
+      try {
+        columnState = gridApi.getColumnState();
+        columnGroupState = gridApi.getColumnGroupState();
+      } catch (e) {
+        console.warn('Error getting column state before refresh:', e);
+      }
       
-      // Filtering
-      gridApi.setGridOption('enableAdvancedFilter', gridOptions.enableAdvancedFilter);
+      // Apply changes with caution
+      setTimeout(() => {
+        if (gridApi) {
+          try {
+            // Refresh grid components
+            gridApi.refreshHeader();
+            gridApi.refreshCells({ force: false });
+            
+            try {
+              gridApi.sizeColumnsToFit();
+            } catch (err) {
+              console.warn('Error sizing columns to fit:', err);
+            }
+            
+            // Save the grid options to the current profile in localStorage
+            try {
+              // Get current settings from localStorage
+              const storedSettings = localStorage.getItem('agGridSettings');
+              if (storedSettings) {
+                const parsedSettings = JSON.parse(storedSettings) as GridSettings[];
+                
+                // Find the current profile
+                const profileIndex = parsedSettings.findIndex(s => s.id === currentProfileId);
+                
+                if (profileIndex !== -1) {
+                  // Get updated column state after changes
+                  let updatedColumnState = columnState;
+                  let updatedColumnGroupState = columnGroupState;
+                  
+                  try {
+                    if (gridApi) {
+                      updatedColumnState = gridApi.getColumnState();
+                      updatedColumnGroupState = gridApi.getColumnGroupState();
+                    }
+                  } catch (e) {
+                    console.warn('Error getting updated column state:', e);
+                    // Fall back to the state we captured earlier
+                  }
+                  
+                  // Create a complete settings object with all properties
+                  const updatedSettings = {
+                    ...parsedSettings[profileIndex],
+                    gridOptions: {
+                      ...gridOptions,
+                      // Make sure we explicitly include key settings
+                      rowGroupPanelShow: gridOptions.rowGroupPanelShow
+                    },
+                    columnState: updatedColumnState,
+                    columnGroupState: updatedColumnGroupState
+                  };
+                  
+                  // Update the profile in the array
+                  parsedSettings[profileIndex] = updatedSettings;
+                  
+                  // Save back to localStorage
+                  localStorage.setItem('agGridSettings', JSON.stringify(parsedSettings));
+                  console.log('Successfully saved grid options and column state to profile:', currentProfileId);
+                } else {
+                  console.warn('Could not find profile to update:', currentProfileId);
+                }
+              }
+            } catch (error) {
+              console.error('Error saving grid options to localStorage:', error);
+            }
+          } catch (err) {
+            console.warn('Error refreshing grid:', err);
+          }
+        }
+      }, 50);
       
-      // Pagination
-      gridApi.setGridOption('pagination', gridOptions.pagination);
-      gridApi.setGridOption('paginationPageSize', gridOptions.paginationPageSize);
-      gridApi.setGridOption('suppressPaginationPanel', gridOptions.suppressPaginationPanel);
-      
-      // Editing
-      gridApi.setGridOption('editType', gridOptions.editType);
-      gridApi.setGridOption('singleClickEdit', gridOptions.singleClickEdit);
-      gridApi.setGridOption('enterNavigatesVertically', gridOptions.enterNavigatesVertically);
-      gridApi.setGridOption('enterNavigatesVerticallyAfterEdit', gridOptions.enterNavigatesVerticallyAfterEdit);
-      gridApi.setGridOption('readOnlyEdit', gridOptions.readOnlyEdit);
-      
-      // Column Options
-      gridApi.setGridOption('suppressMovableColumns', gridOptions.suppressMovableColumns);
-      gridApi.setGridOption('suppressFieldDotNotation', gridOptions.suppressFieldDotNotation);
-      gridApi.setGridOption('suppressColumnMoveAnimation', gridOptions.suppressColumnMoveAnimation);
-      
-      // Export
-      gridApi.setGridOption('suppressCsvExport', gridOptions.suppressCsvExport);
-      gridApi.setGridOption('suppressExcelExport', gridOptions.suppressExcelExport);
-      
-      // Cell Selection & Range Selection
-      gridApi.setGridOption('cellSelection', gridOptions.cellSelection);
-      
-      // Other Functionality
-      gridApi.setGridOption('suppressDragLeaveHidesColumns', gridOptions.suppressDragLeaveHidesColumns);
-      gridApi.setGridOption('animateRows', gridOptions.animateRows);
-      
-      // Apply changes
-      gridApi.refreshHeader();
-      gridApi.refreshCells({ force: true });
-      gridApi.sizeColumnsToFit();
-      
-      console.log('AG-Grid settings applied successfully');
+      console.log('AG-Grid settings application initiated - refresh will complete shortly');
     } catch (error) {
       console.error('Error applying AG-Grid settings:', error);
     }
@@ -918,13 +1009,14 @@ function GeneralSettingsDialog({
                 <span style={labelStyle}>Type of row selection</span>
                 <div style={controlStyle}>
                   <select 
-                    value={gridOptions.rowSelection.mode}
+                    value={gridOptions.rowSelection}
                     onChange={(e) => setGridOptions({
                       ...gridOptions, 
-                      rowSelection: {...gridOptions.rowSelection, mode: e.target.value as 'multiRow' | 'singleRow'}
+                      rowSelection: e.target.value as 'multiple' | 'singleRow' | 'multiRow'
                     })}
                     style={selectStyle}
                   >
+                    <option value="multiple">Multiple</option>
                     <option value="singleRow">Single</option>
                     <option value="multiRow">Multiple</option>
                   </select>
@@ -936,10 +1028,10 @@ function GeneralSettingsDialog({
                 <div style={controlStyle}>
                   <input 
                     type="checkbox" 
-                    checked={gridOptions.rowSelection.enableSelectionWithoutKeys}
+                    checked={gridOptions.rowSelection === 'multiple'}
                     onChange={(e) => setGridOptions({
                       ...gridOptions, 
-                      rowSelection: {...gridOptions.rowSelection, enableSelectionWithoutKeys: e.target.checked}
+                      rowSelection: e.target.checked ? 'multiple' : 'singleRow'
                     })}
                     style={checkboxStyle}
                   />
@@ -951,10 +1043,10 @@ function GeneralSettingsDialog({
                 <div style={controlStyle}>
                   <input 
                     type="checkbox" 
-                    checked={gridOptions.rowSelection.enableClickSelection}
+                    checked={gridOptions.rowSelection === 'multiple'}
                     onChange={(e) => setGridOptions({
                       ...gridOptions, 
-                      rowSelection: {...gridOptions.rowSelection, enableClickSelection: e.target.checked}
+                      rowSelection: e.target.checked ? 'multiple' : 'singleRow'
                     })}
                     style={checkboxStyle}
                   />
@@ -1052,8 +1144,8 @@ function GeneralSettingsDialog({
                 <div style={controlStyle}>
                   <input 
                     type="checkbox" 
-                    checked={gridOptions.groupTotalRow}
-                    onChange={(e) => setGridOptions({...gridOptions, groupTotalRow: e.target.checked})}
+                    checked={gridOptions.groupIncludeFooter}
+                    onChange={(e) => setGridOptions({...gridOptions, groupIncludeFooter: e.target.checked})}
                     style={checkboxStyle}
                   />
                 </div>
@@ -1064,8 +1156,8 @@ function GeneralSettingsDialog({
                 <div style={controlStyle}>
                   <input 
                     type="checkbox" 
-                    checked={gridOptions.grandTotalRow}
-                    onChange={(e) => setGridOptions({...gridOptions, grandTotalRow: e.target.checked})}
+                    checked={gridOptions.groupIncludeTotalFooter}
+                    onChange={(e) => setGridOptions({...gridOptions, groupIncludeTotalFooter: e.target.checked})}
                     style={checkboxStyle}
                   />
                 </div>
@@ -1087,7 +1179,7 @@ function GeneralSettingsDialog({
                 <span style={labelStyle}>Totals for pivot column groups</span>
                 <div style={controlStyle}>
                   <select 
-                    value={gridOptions.pivotColumnGroupTotals as string}
+                    value={gridOptions.pivotColumnGroupTotals}
                     onChange={(e) => setGridOptions({...gridOptions, pivotColumnGroupTotals: e.target.value as any})}
                     style={selectStyle}
                   >
@@ -1101,7 +1193,7 @@ function GeneralSettingsDialog({
                 <span style={labelStyle}>Totals for pivot rows</span>
                 <div style={controlStyle}>
                   <select 
-                    value={gridOptions.pivotRowTotals as string}
+                    value={gridOptions.pivotRowTotals}
                     onChange={(e) => setGridOptions({...gridOptions, pivotRowTotals: e.target.value as any})}
                     style={selectStyle}
                   >
@@ -1121,7 +1213,7 @@ function GeneralSettingsDialog({
                 <span style={labelStyle}>Type of editing</span>
                 <div style={controlStyle}>
                   <select 
-                    value={gridOptions.editType as string}
+                    value={gridOptions.editType}
                     onChange={(e) => setGridOptions({...gridOptions, editType: e.target.value as any})}
                     style={selectStyle}
                   >
@@ -1172,8 +1264,8 @@ function GeneralSettingsDialog({
                 <div style={controlStyle}>
                   <input 
                     type="checkbox" 
-                    checked={gridOptions.enterNavigatesVertically}
-                    onChange={(e) => setGridOptions({...gridOptions, enterNavigatesVertically: e.target.checked})}
+                    checked={gridOptions.enterMovesDown}
+                    onChange={(e) => setGridOptions({...gridOptions, enterMovesDown: e.target.checked})}
                     style={checkboxStyle}
                   />
                 </div>
@@ -1184,8 +1276,8 @@ function GeneralSettingsDialog({
                 <div style={controlStyle}>
                   <input 
                     type="checkbox" 
-                    checked={gridOptions.enterNavigatesVerticallyAfterEdit}
-                    onChange={(e) => setGridOptions({...gridOptions, enterNavigatesVerticallyAfterEdit: e.target.checked})}
+                    checked={gridOptions.enterMovesDownAfterEdit}
+                    onChange={(e) => setGridOptions({...gridOptions, enterMovesDownAfterEdit: e.target.checked})}
                     style={checkboxStyle}
                   />
                 </div>
@@ -1370,6 +1462,162 @@ function SettingsToolPanel(props: IToolPanelParams & { currentProfileId?: string
   );
 }
 
+// Class-based error boundary to prevent crashes
+class GridErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Grid Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#FEF2F2',
+          border: '1px solid #F87171',
+          borderRadius: '6px',
+          color: '#B91C1C',
+          margin: '10px 0'
+        }}>
+          <h4 style={{ margin: '0 0 10px' }}>Something went wrong with the grid</h4>
+          <p>There was an error initializing the grid component. Please try refreshing the page.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#B91C1C',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Helper function to safely apply CSS variable to document
+const applyCssVariable = (name: string, value: string) => {
+  try {
+    document.documentElement.style.setProperty(name, value);
+  } catch (e) {
+    console.warn(`Failed to set CSS variable ${name}:`, e);
+  }
+};
+
+// Separate functions to generate styles - move outside component
+function generateAndApplySliderStyles(color: string) {
+  const styleId = 'modern-slider-styles';
+  let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+  
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = styleId;
+    document.head.appendChild(styleElement);
+  }
+  
+  styleElement.innerHTML = generateSliderStyles(color);
+}
+
+function generateAndApplyCheckboxStyles(color: string) {
+  const styleId = 'ag-grid-checkbox-styles';
+  let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+  
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = styleId;
+    document.head.appendChild(styleElement);
+  }
+  
+  styleElement.innerHTML = generateCheckboxStyles(color);
+}
+
+// Apply grid accent color without dependency on component state
+function applyGridAccentColor(color: string) {
+  // Common variables for all themes
+  applyCssVariable("--ag-alpine-active-color", color);
+  applyCssVariable("--ag-selected-row-background-color", colorWithOpacity(color, 0.1));
+  applyCssVariable("--ag-row-hover-color", colorWithOpacity(color, 0.05));
+  applyCssVariable("--ag-column-hover-color", colorWithOpacity(color, 0.05));
+  applyCssVariable("--ag-range-selection-background-color", colorWithOpacity(color, 0.2));
+  applyCssVariable("--ag-range-selection-border-color", color);
+  applyCssVariable("--ag-range-selection-highlight-color", colorWithOpacity(color, 0.3));
+  
+  // Theme-specific variables
+  applyCssVariable("--ag-quartz-primary-color", color);
+  applyCssVariable("--ag-material-primary-color", color);
+  applyCssVariable("--ag-material-accent-color", color);
+  applyCssVariable("--ag-alpine-active-color", color);
+  applyCssVariable("--ag-balham-active-color", color);
+  
+  // Checkbox colors
+  applyCssVariable("--ag-checkbox-background-color", color);
+  applyCssVariable("--ag-checkbox-checked-color", color);
+  applyCssVariable("--ag-checkbox-indeterminate-color", color);
+  applyCssVariable("--ag-toggle-button-on-background-color", color);
+  applyCssVariable("--ag-input-focus-border-color", color);
+  
+  // Apply the generated styles
+  generateAndApplySliderStyles(color);
+  generateAndApplyCheckboxStyles(color);
+}
+
+// Apply grid spacing safely
+function applyGridSpacing(value: number, gridApi: GridApi | null) {
+  try {
+    // Update only essential spacing CSS variables
+    applyCssVariable("--ag-grid-size", `${value}px`);
+    
+    // If we have the grid API, update relevant size properties
+    if (gridApi) {
+      try {
+        // Apply row height and header height via API which is safer
+        gridApi.setGridOption('rowHeight', Math.max(25, 25 + value));
+        gridApi.setGridOption('headerHeight', Math.max(25, 25 + value));
+        
+        // Refresh the grid safely without complete redraw
+        setTimeout(() => {
+          if (gridApi) {
+            try {
+              gridApi.refreshHeader();
+              gridApi.refreshCells({ force: false });
+            } catch (e) {
+              console.warn("Could not refresh grid after spacing change:", e);
+            }
+          }
+        }, 50);
+      } catch (e) {
+        console.warn("Error updating grid spacing with API:", e);
+      }
+    }
+  } catch (e) {
+    console.error("Error applying grid spacing:", e);
+  }
+}
+
+// Apply font size safely
+function applyGridFontSize(value: number) {
+  applyCssVariable("--ag-font-size", `${value}px`);
+}
+
 export function DataTable() {
   const { theme: appTheme } = useTheme();
   const [isDarkMode, setIsDarkMode] = useState(appTheme === 'dark');
@@ -1377,13 +1625,13 @@ export function DataTable() {
   const [fontSize, setFontSize] = useState(14);
   const [accentColor, setAccentColor] = useState(accentColorPresets[0].color);
   const [selectedTheme, setSelectedTheme] = useState<ThemeOption>(themeOptions[0]);
-  const [rowData, setRowData] = useState<IOlympicData[]>([]);  // Initialize with empty array
+  const [rowData, setRowData] = useState<IOlympicData[]>([]);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showToolbar, setShowToolbar] = useState(true);
   const [savedSettings, setSavedSettings] = useState<GridSettings[]>([]);
   const [currentProfile, setCurrentProfile] = useState<string>("default");
   const [showSavedSettingsDropdown, setShowSavedSettingsDropdown] = useState(false);
-  const [gridReady, setGridReady] = useState(false);  // Track grid initialization
+  const [gridReady, setGridReady] = useState(false);
   const gridRef = useRef<AgGridReact>(null);
   
   const containerStyle = useMemo(() => ({ 
@@ -1634,168 +1882,88 @@ export function DataTable() {
 
   // Modified onGridReady handler
   const onGridReady = useCallback((params: GridReadyEvent) => {
-    setGridReady(true);  // Mark grid as ready
+    setGridReady(true);
+    
+    // Apply existing settings to the newly ready grid
+    applyGridSpacing(spacing, params.api);
     
     fetch("https://www.ag-grid.com/example-assets/olympic-winners.json")
       .then((resp) => resp.json())
       .then((data: any[]) => {
-        // Transform the data to add the medalist boolean field
         const transformedData = data.map(row => ({
           ...row,
-          // An athlete is a medalist if they have at least one medal
           medalist: (row.gold + row.silver + row.bronze) > 0
         }));
         setRowData(transformedData);
       })
       .catch(error => {
         console.error("Error fetching data:", error);
-        // Set empty array if fetch fails
         setRowData([]);
       });
-  }, []);
+  }, [spacing]);
 
-  const setDarkMode = (enabled: boolean) => {
+  const setDarkMode = useCallback((enabled: boolean) => {
     setIsDarkMode(enabled);
     document.body.dataset.agThemeMode = enabled ? "dark" : "light";
     document.body.classList.toggle('dark', enabled);
-  };
+    
+    // When dark mode changes, we need to reapply styles for proper contrast
+    setTimeout(() => {
+      applyGridAccentColor(accentColor);
+    }, 0);
+  }, [accentColor]);
 
   const changeSpacing = useCallback((value: number) => {
     setSpacing(value);
-    
-    try {
-      // Update only essential spacing CSS variables
-      document.documentElement.style.setProperty("--ag-grid-size", `${value}px`);
-      
-      // For other variables, apply changes that won't trigger grid restructuring
-      if (gridRef.current && gridRef.current.api) {
-        // Apply row height and header height via API which is safer
-        gridRef.current.api.setGridOption('rowHeight', Math.max(25, 25 + value));
-        gridRef.current.api.setGridOption('headerHeight', Math.max(25, 25 + value));
-        
-        // Refresh the grid safely without complete redraw
-        requestAnimationFrame(() => {
-          if (gridRef.current && gridRef.current.api) {
-            gridRef.current.api.refreshHeader();
-            gridRef.current.api.refreshCells({ force: false });
-            
-            // Only resize columns if not causing errors
-            try {
-              gridRef.current.api.sizeColumnsToFit();
-            } catch (e) {
-              console.warn("Could not resize columns:", e);
-            }
-          }
-        });
-      }
-    } catch (e) {
-      console.error("Error updating grid spacing:", e);
-    }
+    const gridApi = gridRef.current?.api || null;
+    applyGridSpacing(value, gridApi);
   }, []);
 
   const changeFontSize = useCallback((value: number) => {
     setFontSize(value);
-    document.documentElement.style.setProperty("--ag-font-size", `${value}px`);
+    applyGridFontSize(value);
   }, []);
 
-  // Move updateSliderStyles before changeAccentColor to resolve the circular dependency
-  const updateSliderStyles = useCallback((color: string) => {
-    const styleElement = document.getElementById('modern-slider-styles');
-    if (styleElement) {
-      styleElement.innerHTML = generateSliderStyles(color);
-    }
-  }, []);
-
-  const updateCheckboxStyles = useCallback((color: string) => {
-    const styleId = 'ag-grid-checkbox-styles';
-    let styleElement = document.getElementById(styleId) as HTMLStyleElement;
-    
-    if (!styleElement) {
-      styleElement = document.createElement('style');
-      styleElement.id = styleId;
-      document.head.appendChild(styleElement);
-    }
-    
-    styleElement.innerHTML = generateCheckboxStyles(color);
-  }, []);
-  
   const changeAccentColor = useCallback((color: string) => {
     setAccentColor(color);
-    
-    // Common variables for all themes
-    document.documentElement.style.setProperty("--ag-alpine-active-color", color);
-    document.documentElement.style.setProperty("--ag-selected-row-background-color", colorWithOpacity(color, 0.1));
-    document.documentElement.style.setProperty("--ag-row-hover-color", colorWithOpacity(color, 0.05));
-    document.documentElement.style.setProperty("--ag-column-hover-color", colorWithOpacity(color, 0.05));
-    document.documentElement.style.setProperty("--ag-range-selection-background-color", colorWithOpacity(color, 0.2));
-    document.documentElement.style.setProperty("--ag-range-selection-border-color", color);
-    document.documentElement.style.setProperty("--ag-range-selection-highlight-color", colorWithOpacity(color, 0.3));
-    
-    // Quartz theme specific
-    document.documentElement.style.setProperty("--ag-quartz-primary-color", color);
-    
-    // Material theme specific
-    document.documentElement.style.setProperty("--ag-material-primary-color", color);
-    document.documentElement.style.setProperty("--ag-material-accent-color", color);
-    
-    // Alpine theme specific
-    document.documentElement.style.setProperty("--ag-alpine-active-color", color);
-    
-    // Balham theme specific
-    document.documentElement.style.setProperty("--ag-balham-active-color", color);
-    
-    // Checkbox colors - Note: These aren't directly supported by AG-Grid CSS vars,
-    // but we'll set them in case they add support in the future
-    document.documentElement.style.setProperty("--ag-checkbox-background-color", color);
-    document.documentElement.style.setProperty("--ag-checkbox-checked-color", color);
-    document.documentElement.style.setProperty("--ag-checkbox-indeterminate-color", color);
-    document.documentElement.style.setProperty("--ag-toggle-button-on-background-color", color);
-    document.documentElement.style.setProperty("--ag-input-focus-border-color", color);
-    
-    // Update slider styles with new color
-    updateSliderStyles(color);
-    
-    // Update checkbox styles with new color using CSS overrides
-    updateCheckboxStyles(color);
-  }, [updateSliderStyles, updateCheckboxStyles]);
+    applyGridAccentColor(color);
+  }, []);
 
   const handleThemeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const themeId = e.target.value;
     const newTheme = themeOptions.find(t => t.id === themeId) || themeOptions[0];
     setSelectedTheme(newTheme);
 
-    // Apply accent color to the new theme
-    setTimeout(() => changeAccentColor(accentColor), 0);
-  }, [accentColor, changeAccentColor]);
-
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    const colorPickerContainer = document.querySelector('.color-picker-container');
-    if (colorPickerContainer && !colorPickerContainer.contains(event.target as Node)) {
-      setShowColorPicker(false);
-    }
-  }, []);
+    // Apply accent color to the new theme after a brief delay
+    setTimeout(() => {
+      applyGridAccentColor(accentColor);
+    }, 50);
+  }, [accentColor]);
 
   // Keep theme in sync with app theme
   useEffect(() => {
     setDarkMode(appTheme === 'dark');
-  }, [appTheme]);
+  }, [appTheme, setDarkMode]);
 
-  // Initialize spacing, font size, and accent color on component mount
+  // Initialize visual settings on component mount - once only
   useEffect(() => {
-    changeSpacing(spacing);
-    changeFontSize(fontSize);
-    changeAccentColor(accentColor);
-    
-    // Add slider styles to document
-    const styleElem = document.createElement('style');
-    styleElem.id = 'modern-slider-styles';
-    styleElem.innerHTML = generateSliderStyles(accentColor);
-    document.head.appendChild(styleElem);
+    // Initial application of styles
+    applyGridSpacing(spacing, null);
+    applyGridFontSize(fontSize);
+    applyGridAccentColor(accentColor);
     
     // Add click outside listener for color picker
+    const handleClickOutside = (event: MouseEvent) => {
+      const colorPickerContainer = document.querySelector('.color-picker-container');
+      if (colorPickerContainer && !colorPickerContainer.contains(event.target as Node)) {
+        setShowColorPicker(false);
+      }
+    };
+    
     document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
+      // Clean up styles on unmount
       const styleElements = [
         document.getElementById('modern-slider-styles'),
         document.getElementById('ag-grid-checkbox-styles')
@@ -1809,7 +1977,7 @@ export function DataTable() {
       
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [changeSpacing, spacing, changeFontSize, fontSize, changeAccentColor, accentColor, handleClickOutside]);
+  }, []); // Empty dependency array means this only runs once
 
   // Function to create a default profile
   const createDefaultProfile = useCallback((): GridSettings => {
@@ -1833,39 +2001,100 @@ export function DataTable() {
     
     // Get gridOptions from the API if available
     let gridOptionsFromAPI = {};
+    let columnState = null;
+    let columnGroupState = null;
+    
     if (gridRef.current && gridRef.current.api) {
       // Only include options that are actually used in our UI
       const api = gridRef.current.api;
       
       try {
-        const rowSelectionOption = api.getGridOption('rowSelection');
-        let rowSelectionValue: any = { mode: 'multiRow' };
+        // Get column states which contains grouping information
+        columnState = api.getColumnState();
+        columnGroupState = api.getColumnGroupState();
         
-        // Safely extract rowSelection properties
-        if (rowSelectionOption && typeof rowSelectionOption === 'object') {
-          rowSelectionValue = {
-            mode: rowSelectionOption.mode || 'multiRow',
-            enableSelectionWithoutKeys: !!rowSelectionOption.enableSelectionWithoutKeys,
-            enableClickSelection: !!rowSelectionOption.enableClickSelection
-          };
+        // Get the current rowSelection value
+        const rowSelectionOption = api.getGridOption('rowSelection');
+        let rowSelectionValue = 'multiple'; // Safe default
+        
+        // Handle different types of rowSelection values
+        if (typeof rowSelectionOption === 'string') {
+          rowSelectionValue = rowSelectionOption;
+        } else if (rowSelectionOption && typeof rowSelectionOption === 'object') {
+          const mode = rowSelectionOption.mode;
+          if (mode === 'singleRow') {
+            rowSelectionValue = 'single';
+          } else {
+            rowSelectionValue = 'multiple';
+          }
         }
         
+        // Get the row grouping panel setting
+        const rowGroupPanelShow = api.getGridOption('rowGroupPanelShow');
+        
         gridOptionsFromAPI = {
+          // Core options
           enableCellTextSelection: api.getGridOption('enableCellTextSelection'),
           rowSelection: rowSelectionValue,
           suppressMenuHide: api.getGridOption('suppressMenuHide'),
+          
+          // Styling
           headerHeight: api.getGridOption('headerHeight'),
           rowHeight: api.getGridOption('rowHeight'),
+          
+          // Row Grouping & Pivoting - capture all correctly
           groupDefaultExpanded: api.getGridOption('groupDefaultExpanded'),
-          rowGroupPanelShow: api.getGridOption('rowGroupPanelShow'),
+          rowGroupPanelShow: rowGroupPanelShow, // Explicitly capture this value
           groupDisplayType: api.getGridOption('groupDisplayType'),
-          groupTotalRow: api.getGridOption('groupTotalRow'),
-          grandTotalRow: api.getGridOption('grandTotalRow'),
-          // ... include all other options from GeneralSettingsDialog
+          groupIncludeFooter: api.getGridOption('groupIncludeFooter'),
+          groupIncludeTotalFooter: api.getGridOption('groupIncludeTotalFooter'),
+          pivotMode: api.getGridOption('pivotMode'),
+          pivotColumnGroupTotals: api.getGridOption('pivotColumnGroupTotals'),
+          pivotRowTotals: api.getGridOption('pivotRowTotals'),
+          
+          // Editing
+          editType: api.getGridOption('editType'),
+          singleClickEdit: api.getGridOption('singleClickEdit'),
+          stopEditingWhenCellsLoseFocus: api.getGridOption('stopEditingWhenCellsLoseFocus'),
+          enterMovesDown: api.getGridOption('enterMovesDown'),
+          enterMovesDownAfterEdit: api.getGridOption('enterMovesDownAfterEdit'),
+          readOnlyEdit: api.getGridOption('readOnlyEdit'),
+          
+          // Column Options
+          suppressMovableColumns: api.getGridOption('suppressMovableColumns'),
+          suppressFieldDotNotation: api.getGridOption('suppressFieldDotNotation'),
+          suppressColumnMoveAnimation: api.getGridOption('suppressColumnMoveAnimation'),
+          
+          // Additional options
+          suppressMultiSort: api.getGridOption('suppressMultiSort'),
+          enableAdvancedFilter: api.getGridOption('enableAdvancedFilter'),
+          pagination: api.getGridOption('pagination'),
+          paginationPageSize: api.getGridOption('paginationPageSize'),
+          suppressPaginationPanel: api.getGridOption('suppressPaginationPanel'),
+          enableRangeSelection: api.getGridOption('enableRangeSelection'),
+          enableRangeHandle: api.getGridOption('enableRangeHandle'),
+          enableFillHandle: api.getGridOption('enableFillHandle'),
+          suppressDragLeaveHidesColumns: api.getGridOption('suppressDragLeaveHidesColumns'),
+          animateRows: api.getGridOption('animateRows'),
         };
+        
+        // Add any missing properties from the current profileData's gridOptions
+        if (currentProfileData.gridOptions) {
+          gridOptionsFromAPI = { ...currentProfileData.gridOptions, ...gridOptionsFromAPI };
+        }
       } catch (error) {
         console.warn('Error collecting grid options:', error);
+        // Fall back to current profile's grid options if available
+        if (currentProfileData.gridOptions) {
+          gridOptionsFromAPI = { ...currentProfileData.gridOptions };
+        }
       }
+    } else if (currentProfileData.gridOptions) {
+      // No grid API, use current profile grid options
+      gridOptionsFromAPI = { ...currentProfileData.gridOptions };
+      // Preserve column state from profile if available
+      columnState = currentProfileData.columnState || null;
+      columnGroupState = currentProfileData.columnGroupState || null;
     }
 
     return {
@@ -1876,6 +2105,8 @@ export function DataTable() {
       fontSize: fontSize,
       isDarkMode: isDarkMode,
       gridOptions: gridOptionsFromAPI,
+      columnState: columnState,
+      columnGroupState: columnGroupState,
       name: currentProfileData.name,
       isDefault: currentProfileData.isDefault
     };
@@ -1883,7 +2114,32 @@ export function DataTable() {
 
   // Function to save current settings to the current profile
   const saveSettings = useCallback(() => {
+    if (!gridRef.current || !gridRef.current.api) {
+      console.warn('Cannot save settings - grid not initialized');
+      return;
+    }
+    
+    // Get the current comprehensive settings
     const currentSettings = collectCurrentSettings();
+    console.log('Saving current settings to profile:', currentProfile);
+    
+    // Ensure we're capturing column state and grouping information
+    try {
+      const api = gridRef.current.api;
+      currentSettings.columnState = api.getColumnState();
+      currentSettings.columnGroupState = api.getColumnGroupState();
+      
+      // Explicitly capture important settings that might be missed
+      if (currentSettings.gridOptions) {
+        // Ensure rowGroupPanelShow is captured properly
+        const rowGroupPanelShow = api.getGridOption('rowGroupPanelShow');
+        if (rowGroupPanelShow) {
+          currentSettings.gridOptions.rowGroupPanelShow = rowGroupPanelShow;
+        }
+      }
+    } catch (e) {
+      console.warn('Error capturing column state during save:', e);
+    }
     
     // Find if this profile already exists
     const existingIndex = savedSettings.findIndex(s => s.id === currentProfile);
@@ -1894,22 +2150,47 @@ export function DataTable() {
       updatedSettings[existingIndex] = currentSettings;
       setSavedSettings(updatedSettings);
       localStorage.setItem('agGridSettings', JSON.stringify(updatedSettings));
-      alert(`Settings saved to "${currentSettings.name}" profile`);
+      console.log(`Settings saved to "${currentSettings.name}" profile`);
     } else {
       // This shouldn't happen normally since we're only updating current profile
       const updatedSettings = [...savedSettings, currentSettings];
       setSavedSettings(updatedSettings);
       localStorage.setItem('agGridSettings', JSON.stringify(updatedSettings));
-      alert(`Settings saved as "${currentSettings.name}"`);
+      console.log(`Settings saved as "${currentSettings.name}"`);
     }
   }, [collectCurrentSettings, savedSettings, currentProfile]);
 
   // Function to save settings as a new profile
   const saveSettingsAs = useCallback(() => {
+    if (!gridRef.current || !gridRef.current.api) {
+      console.warn('Cannot save settings - grid not initialized');
+      return;
+    }
+    
     const name = prompt('Enter a name for these settings:', `AG-Grid Settings ${new Date().toLocaleString()}`);
     if (!name) return; // User cancelled
 
+    // Get the current comprehensive settings
     const currentSettings = collectCurrentSettings();
+    
+    // Ensure we're capturing column state and grouping information
+    try {
+      const api = gridRef.current.api;
+      currentSettings.columnState = api.getColumnState();
+      currentSettings.columnGroupState = api.getColumnGroupState();
+      
+      // Explicitly capture important settings that might be missed
+      if (currentSettings.gridOptions) {
+        // Ensure rowGroupPanelShow is captured properly
+        const rowGroupPanelShow = api.getGridOption('rowGroupPanelShow');
+        if (rowGroupPanelShow) {
+          currentSettings.gridOptions.rowGroupPanelShow = rowGroupPanelShow;
+        }
+      }
+    } catch (e) {
+      console.warn('Error capturing column state during save-as:', e);
+    }
+    
     // Create a new profile with a unique ID
     const newProfile = {
       ...currentSettings,
@@ -1923,7 +2204,7 @@ export function DataTable() {
     setCurrentProfile(newProfile.id); // Set this as the current profile
     localStorage.setItem('agGridSettings', JSON.stringify(updatedSettings));
 
-    alert(`Settings saved as "${name}" profile and set as current`);
+    console.log(`Settings saved as "${name}" profile and set as current`);
   }, [collectCurrentSettings, savedSettings]);
 
   // Function to load settings from a profile
@@ -1938,60 +2219,118 @@ export function DataTable() {
     changeFontSize(settings.fontSize);
     changeAccentColor(settings.accentColor);
 
-    // Apply grid options if we have a grid API and it's ready
-    if (gridRef.current && gridRef.current.api && settings.gridOptions && gridReady) {
-      try {
-        const api = gridRef.current.api;
-        
-        // Apply settings with a delay to ensure grid is properly initialized
-        setTimeout(() => {
-          try {
-            if (gridRef.current && gridRef.current.api) {
-              // Apply only essential options first
-              if (settings.gridOptions.headerHeight) {
-                api.setGridOption('headerHeight', settings.gridOptions.headerHeight);
-              }
-              
-              if (settings.gridOptions.rowHeight) {
-                api.setGridOption('rowHeight', settings.gridOptions.rowHeight);
-              }
-              
-              // Apply remaining options with a further delay
-              setTimeout(() => {
-                try {
-                  if (gridRef.current && gridRef.current.api) {
-                    // Apply other options
-                    Object.entries(settings.gridOptions)
-                      .filter(([key]) => key !== 'headerHeight' && key !== 'rowHeight')
-                      .forEach(([key, value]) => {
-                        try {
-                          gridRef.current!.api!.setGridOption(key as any, value as any);
-                        } catch (e) {
-                          console.warn(`Could not set grid option ${key}:`, e);
-                        }
-                      });
-                    
-                    // Refresh the grid safely
-                    gridRef.current.api.refreshHeader();
-                    gridRef.current.api.refreshCells({ force: false });
-                  }
-                } catch (e) {
-                  console.error("Error applying delayed grid settings:", e);
-                }
-              }, 100);
-            }
-          } catch (e) {
-            console.error("Error in first stage of applying grid settings:", e);
-          }
-        }, 100);
-      } catch (e) {
-        console.error("Error setting up grid settings application:", e);
-      }
-    }
-
-    // Set as current profile
+    // Set as current profile immediately
     setCurrentProfile(settings.id);
     setShowSavedSettingsDropdown(false);
+
+    // Only apply grid options if grid is ready
+    if (gridReady && gridRef.current && gridRef.current.api) {
+      // Use a safer approach with explicit timeouts
+      setTimeout(() => {
+        if (!gridRef.current || !gridRef.current.api) return;
+        
+        try {
+          const api = gridRef.current.api;
+          const options = settings.gridOptions;
+          
+          console.log('Loading profile settings:', settings.name);
+          console.log('Row group panel setting:', options.rowGroupPanelShow);
+          
+          // First apply the row grouping panel setting specifically
+          if (options.rowGroupPanelShow) {
+            try {
+              // Ensure we're passing a valid value
+              const validValue = ['always', 'onlyWhenGrouping', 'never'].includes(options.rowGroupPanelShow as string) 
+                ? options.rowGroupPanelShow 
+                : 'onlyWhenGrouping';
+                
+              api.setGridOption('rowGroupPanelShow', validValue);
+              console.log('Applied rowGroupPanelShow:', validValue);
+            } catch (e) {
+              console.warn('Could not set rowGroupPanelShow:', e);
+            }
+          }
+          
+          // Apply column state which includes grouping information
+          if (settings.columnState) {
+            try {
+              api.applyColumnState({
+                state: settings.columnState,
+                applyOrder: true
+              });
+              console.log('Applied column state with grouping info');
+            } catch (e) {
+              console.warn('Could not apply column state:', e);
+            }
+          }
+          
+          // Apply column group state
+          if (settings.columnGroupState) {
+            try {
+              api.setColumnGroupState(settings.columnGroupState);
+              console.log('Applied column group state');
+            } catch (e) {
+              console.warn('Could not apply column group state:', e);
+            }
+          }
+          
+          // Apply safer options first (size-related ones)
+          if (options.headerHeight) {
+            api.setGridOption('headerHeight', options.headerHeight);
+          }
+          
+          if (options.rowHeight) {
+            api.setGridOption('rowHeight', options.rowHeight);
+          }
+          
+          // Apply other basic options that are unlikely to crash
+          const safeOptions = [
+            'enableCellTextSelection',
+            'suppressMenuHide',
+            'suppressMultiSort',
+            'pagination',
+            'paginationPageSize',
+            'suppressPaginationPanel',
+            'singleClickEdit',
+            'suppressMovableColumns',
+            'suppressFieldDotNotation',
+            'suppressColumnMoveAnimation',
+            'groupDisplayType',
+            'groupDefaultExpanded',
+            'pivotMode'
+          ];
+          
+          safeOptions.forEach(option => {
+            if (options[option] !== undefined) {
+              try {
+                api.setGridOption(option as any, options[option]);
+              } catch (e) {
+                console.warn(`Could not set grid option ${option}:`, e);
+              }
+            }
+          });
+          
+          // Handle row selection carefully
+          if (options.rowSelection) {
+            try {
+              api.setGridOption('rowSelection', options.rowSelection);
+            } catch (e) {
+              console.warn('Could not set rowSelection:', e);
+            }
+          }
+          
+          // Apply changes carefully
+          try {
+            api.refreshHeader();
+            api.refreshCells({ force: false });
+          } catch (e) {
+            console.error("Error refreshing grid after applying settings:", e);
+          }
+        } catch (e) {
+          console.error("Error applying grid settings:", e);
+        }
+      }, 300); // Longer timeout for safety
+    }
   }, [setDarkMode, changeAccentColor, changeFontSize, gridReady]);
 
   // Function to delete a saved setting
@@ -2282,27 +2621,35 @@ export function DataTable() {
         </div>
       </div>
       <div style={gridStyle}>
-        <AgGridReact
-          ref={gridRef}
-          theme={selectedTheme.theme}
-          columnDefs={columnDefs}
-          rowData={rowData}
-          defaultColDef={defaultColDef}
-          sideBar={sideBar}
-          suppressPropertyNamesCheck={true}
-          statusBar={{
-            statusPanels: [
-              { statusPanel: 'agTotalRowCountComponent', align: 'left' },
-              { statusPanel: 'agFilteredRowCountComponent' },
-              { statusPanel: 'agSelectedRowCountComponent' },
-              { statusPanel: 'agAggregationComponent' }
-            ]
-          }}
-          onGridReady={onGridReady}
-          components={{
-            settingsToolPanel: (props: IToolPanelParams) => <SettingsToolPanel {...props} currentProfileId={currentProfile} />
-          }}
-        />
+        <GridErrorBoundary>
+          <AgGridReact
+            ref={gridRef}
+            theme={selectedTheme.theme}
+            columnDefs={columnDefs}
+            rowData={rowData}
+            defaultColDef={defaultColDef}
+            sideBar={sideBar}
+            suppressPropertyNamesCheck={true}
+            statusBar={{
+              statusPanels: [
+                { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+                { statusPanel: 'agFilteredRowCountComponent' },
+                { statusPanel: 'agSelectedRowCountComponent' },
+                { statusPanel: 'agAggregationComponent' }
+              ]
+            }}
+            onGridReady={onGridReady}
+            components={{
+              settingsToolPanel: (props: IToolPanelParams) => <SettingsToolPanel {...props} currentProfileId={currentProfile} />
+            }}
+            // Safer default options
+            enableCellTextSelection={true} 
+            rowSelection="multiple"
+            suppressMenuHide={false}
+            // Disable range selection until fully initialized
+            enableRangeSelection={gridReady}
+          />
+        </GridErrorBoundary>
       </div>
     </div>
   );
