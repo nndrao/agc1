@@ -1482,36 +1482,35 @@ function SettingsToolPanel(props: IToolPanelParams & {
   );
 }
 
-// Class-based error boundary to prevent crashes
+// Error boundary for AG Grid using class component (compatible with React 19)
 class GridErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; error: Error | null }
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(_: Error) {
+  static getDerivedStateFromError(error: Error) {
     // Update state so the next render will show the fallback UI
-    return { hasError: true };
+    return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log the error to console
-    console.error("Grid Error:", error);
-    console.error("Component Stack:", errorInfo.componentStack);
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    // Log error information
+    console.error("AG Grid Error:", error);
+    console.error("Component Stack:", info.componentStack);
   }
 
-  // Reset error state when component receives new children props
-  componentDidUpdate(prevProps: { children: React.ReactNode }) {
-    if (this.state.hasError && prevProps.children !== this.props.children) {
-      this.setState({ hasError: false });
-    }
-  }
+  // Attempt to reset the error state
+  tryAgain = () => {
+    this.setState({ hasError: false, error: null });
+  };
 
   render() {
     if (this.state.hasError) {
+      // Display fallback UI
       return (
         <div style={{
           padding: '20px',
@@ -1522,24 +1521,53 @@ class GridErrorBoundary extends React.Component<
           margin: '10px 0'
         }}>
           <h4 style={{ margin: '0 0 10px' }}>Something went wrong with the grid</h4>
-          <p>There was an error initializing the grid component. Please try refreshing the page.</p>
-          <button 
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '6px 12px',
-              backgroundColor: '#B91C1C',
-              color: 'white',
-              border: 'none',
+          <p>There was an error initializing the grid component.</p>
+          <details style={{ marginBottom: '10px' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 'bold', marginBottom: '5px' }}>Error Details</summary>
+            <pre style={{ 
+              padding: '8px', 
+              backgroundColor: 'rgba(0,0,0,0.05)', 
               borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Refresh Page
-          </button>
+              overflow: 'auto',
+              maxHeight: '150px',
+              fontSize: '12px'
+            }}>
+              {this.state.error?.toString() || 'Unknown error'}
+            </pre>
+          </details>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={this.tryAgain}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: '#3B82F6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Try Again
+            </button>
+            <button 
+              onClick={() => window.location.reload()}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: '#B91C1C',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Refresh Page
+            </button>
+          </div>
         </div>
       );
     }
 
+    // When no error, render children normally
     return this.props.children;
   }
 }
@@ -2001,20 +2029,42 @@ export function DataTable() {
     sortingOrder: ['asc', 'desc', null] as ('asc' | 'desc' | null)[]
   }), []);
 
-  // Modified onGridReady handler
+  // Enhanced onGridReady handler with comprehensive error handling
   const onGridReady = useCallback((params: GridReadyEvent) => {
     try {
       console.log('Grid ready');
-      setGridReady(true);
       
-      // Apply existing settings to the newly ready grid
-      applyGridSpacing(spacing, params.api);
+      // Wait a short time before setting grid as ready to ensure full initialization
+      setTimeout(() => {
+        try {
+          setGridReady(true);
+        } catch (err) {
+          console.error("Error setting grid ready state:", err);
+        }
+      }, 100);
       
-      // Fetch data with error handling
+      // Safely apply grid spacing
+      try {
+        applyGridSpacing(spacing, params.api);
+      } catch (err) {
+        console.error("Error applying grid spacing:", err);
+      }
+      
+      // Fetch data with comprehensive error handling
       fetch("https://www.ag-grid.com/example-assets/olympic-winners.json")
-        .then((resp) => resp.json())
+        .then((resp) => {
+          if (!resp.ok) {
+            throw new Error(`HTTP error! Status: ${resp.status}`);
+          }
+          return resp.json();
+        })
         .then((data: any[]) => {
+          if (!Array.isArray(data)) {
+            throw new Error("Received data is not an array");
+          }
+          
           try {
+            // Process data only if valid
             const transformedData = data.map(row => ({
               ...row,
               medalist: (row.gold + row.silver + row.bronze) > 0
@@ -2823,7 +2873,7 @@ export function DataTable() {
       </div>
       <div style={gridStyle}>
         <GridErrorBoundary>
-          {/* Force re-render when theme changes with key */}
+          {/* Using a simplified AgGridReact component to avoid errors */}
           <AgGridReact
             key={`grid-${selectedTheme.id}-${isDarkMode ? 'dark' : 'light'}`}
             ref={gridRef}
