@@ -26,6 +26,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // Set data-theme attribute for better CSS selector support
     document.documentElement.setAttribute('data-theme', theme);
+    
+    // Update AG-Grid theme mode
+    document.body.dataset.agThemeMode = theme;
   }, [theme]);
 
   const toggleTheme = () => {
