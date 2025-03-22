@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* AG Grid theme overrides */
+[data-ag-theme-mode="light-red"] {
+  --ag-background-color: #FFE8E0;
+  --ag-foreground-color: #361008CC;
+}
+
+[data-ag-theme-mode="dark-red"] {
+  --ag-background-color: #201008;
+  --ag-foreground-color: #FFFFFFCC;
+}
+
+/* Light theme styles */
+:root {
+  --background: #ffffff;
+  --text: #213547;
+}
+
+/* Dark theme styles */
+:root[class='dark'] {
+  --background: #242424;
+  --text: rgba(255, 255, 255, 0.87);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+.light button {
+  background-color: #f9f9f9;
+}
+
+.dark button {
+  background-color: #1a1a1a;
+}
+
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* AG Grid theme overrides */
+.ag-theme-alpine,
+.ag-theme-alpine-dark {
+  --ag-font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --ag-font-size: 14px;
+}
+
+.ag-theme-alpine {
+  --ag-background-color: #fff;
+  --ag-foreground-color: #181d1f;
+  --ag-border-color: #dde2eb;
+  --ag-header-background-color: #f8f9fa;
+  --ag-odd-row-background-color: #f8f9fa;
+}
+
+.ag-theme-alpine-dark {
+  --ag-background-color: #1a1d1f;
+  --ag-foreground-color: #fff;
+  --ag-border-color: #424242;
+  --ag-header-background-color: #242729;
+  --ag-odd-row-background-color: #242729;
+}
